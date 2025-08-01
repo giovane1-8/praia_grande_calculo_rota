@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro com Mapa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <style>
+        #map {
+            height: 400px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Cadastro de Endereço</h2>
+    <form method="POST" action="{{ url_for('sua_rota_de_salvar') }}">
+        <label for="endereco">Endereço:</label>
+        <input type="text" name="endereco" id="endereco" required>
+        <button type="button" id="buscar">Buscar no mapa</button><br><br>
+
+        <div id="map"></div>
+
+        <!-- Campos ocultos -->
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+
+        <p><strong>Latitude:</strong> <span id="lat_display"></span> | <strong>Longitude:</strong> <span
+                id="lon_display"></span></p>
+
+        <button type="submit">Salvar</button>
+    </form>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const esriSat = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri, Maxar, Earthstar Geographics',
+            maxZoom: 20
+        });
+
+        const esriStreetLabels = L.tileLayer(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri Streets',
+            maxZoom: 20,
+            pane: 'labels'
+        });
+
+        const esriPlaceLabels = L.tileLayer(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri Places',
+            maxZoom: 20,
+            pane: 'labels'
+        });
+
+        const map = L.map('map', {
+            center: [-24.005, -46.403],
+            zoom: 17,
+            layers: [esriSat]
+        });
+
+        map.createPane('labels');
+        map.getPane('labels').style.zIndex = 650;
+        map.getPane('labels').style.pointerEvents = 'none';
+
+        esriStreetLabels.addTo(map);
+        esriPlaceLabels.addTo(map);
+
+        let marker;
+
+        // Evento de clique no mapa
+        map.on('click', function (e) {
+            const { lat, lng } = e.latlng;
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lng]).addTo(map);
+
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            document.getElementById('lat_display').innerText = lat.toFixed(6);
+            document.getElementById('lon_display').innerText = lng.toFixed(6);
+        });
+
+        // Evento do botão "Buscar no mapa"
+        document.getElementById('buscar').addEventListener('click', function () {
+            const endereco = document.getElementById('endereco').value;
+            if (!endereco) return;
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        map.setView([lat, lon], 19);
+
+                        // Adiciona ou move o marcador
+                        if (marker) map.removeLayer(marker);
+                        marker = L.marker([lat, lon]).addTo(map);
+
+                        // Preenche os campos com a coordenada
+                        document.getElementById('latitude').value = lat;
+                        document.getElementById('longitude').value = lon;
+                        document.getElementById('lat_display').innerText = lat.toFixed(6);
+                        document.getElementById('lon_display').innerText = lon.toFixed(6);
+                    } else {
+                        alert("Endereço não encontrado.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Erro ao buscar endereço.");
+                });
+        });
+    </script>
+
+</body>
+
+</html>

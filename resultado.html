@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Resultado da Consulta</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map-container {
+            margin-top: 20px;
+        }
+        .map {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Partida: {{ origem[0] }}, {{ origem[1] }}</h2>
+    <header>
+        <h1>Resultado da Consulta</h1>
+    </header>
+    <main>
+        <h2>Distâncias Calculadas</h2>
+        <ol style="font-size: 20px; line-height: 1.6;">
+            {% for item in resultado %}
+            <li>
+                Distância a pé para <b><i>{{ item['escola'] }}</i></b>: <b>{{ item['distancia'] | round(2) }}</b> m ({{item['latitude']}}, {{item['longitude']}})
+                <div id="map{{ loop.index }}" class="map"></div>
+            </li>
+            {% endfor %}
+        </ol>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        {% for item in resultado %}
+            const rota{{ loop.index }} = {{ item['rota'] | tojson }};
+            const map{{ loop.index }} = L.map("map{{ loop.index }}").setView(rota{{ loop.index }}[0], 16);
+
+            // Adicionar camada de mapa
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map{{ loop.index }});
+
+            // Adicionar a rota
+            const polyline{{ loop.index }} = L.polyline(rota{{ loop.index }}, { color: 'blue' }).addTo(map{{ loop.index }});
+            
+            // Ajustar a visão do mapa à rota
+            map{{ loop.index }}.fitBounds(polyline{{ loop.index }}.getBounds());
+
+            // Adicionar marcadores de início e fim
+
+
+            L.marker(rota{{ loop.index }}[0]).bindPopup("Origem").addTo(map{{ loop.index }});
+            L.marker(rota{{ loop.index }}[rota{{ loop.index }}.length - 1]).bindPopup("Destino").addTo(map{{ loop.index }});
+        {% endfor %}
+    </script>
+</body>
+</html>
