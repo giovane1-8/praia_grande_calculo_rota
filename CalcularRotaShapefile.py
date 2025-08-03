@@ -1,7 +1,6 @@
 # Importa bibliotecas necessárias para geoprocessamento e construção de grafos
 import geopandas as gpd
 import networkx as nx
-import momepy
 from shapely.geometry import Point, LineString
 from pyproj import Transformer
 from shapely.strtree import STRtree
@@ -31,30 +30,27 @@ class CalcularRotaShapefile:
         self._transformador_para_leaflet = Transformer.from_crs(self.gdf.crs, "EPSG:4326", always_xy=True)
 
     def _criar_grafo(self):
-
         """
         Constrói o grafo a partir das linhas do GeoDataFrame.
         """
-       
-       
         G = nx.Graph()  # Cria grafo não-direcionado
 
         for geom in self.gdf.geometry:
             # Extrai as coordenadas das linhas
             coords = list(geom.coords)
-       
             # Adiciona arestas ao grafo com pesos baseados na distância
             for i in range(len(coords) - 1):
+
                 u = self._arredondar(coords[i])
                 v = self._arredondar(coords[i + 1])
-                distancia = Point(u).distance(Point(v))
-                G.add_edge(u, v, extensao=distancia)
+                distancia = Point(coords[i]).distance(Point(coords[i + 1]))
+                G.add_edge(u, v, distancia=distancia)
 
         return G
   
         
         
-    def _arredondar(self, coord, precisao=1):
+    def _arredondar(self, coord, precisao=0):
         """
         Arredonda uma coordenada para reduzir duplicidade de nós.
         """
@@ -137,9 +133,9 @@ class CalcularRotaShapefile:
             dist_u = Point(u).distance(Point(ponto_projetado_mais_proximo))
             dist_v = Point(v).distance(Point(ponto_projetado_mais_proximo))
             if ponto_projetado_mais_proximo != u:
-                grafo.add_edge(u, ponto_projetado_mais_proximo, extensao=dist_u)
+                grafo.add_edge(u, ponto_projetado_mais_proximo, distancia=dist_u)
             if ponto_projetado_mais_proximo != v:
-                grafo.add_edge(ponto_projetado_mais_proximo, v, extensao=dist_v)
+                grafo.add_edge(ponto_projetado_mais_proximo, v, distancia=dist_v)
 
             return ponto_projetado_mais_proximo
 
@@ -167,8 +163,8 @@ class CalcularRotaShapefile:
 
         # Calcula o menor caminho usando o peso 'weight' (distância)
         try:    
-            path = nx.shortest_path(grafo, no_origem, no_destino, weight="extensao")
-            dist = nx.path_weight(grafo, path, weight="extensao")
+            path = nx.shortest_path(grafo, no_origem, no_destino, weight="distancia")
+            dist = nx.path_weight(grafo, path, weight="distancia")
         except:
             # Se não houver caminho possível
             path = [no_destino]
