@@ -6,10 +6,11 @@ from DadosEquipamentosPublicos import DadosEquipamentosPublicos
  
 app = Flask(__name__, template_folder='./')
 
-calcular_rota = CalcularRotaShapefile("MapaTrechoCidade/MapaTrechoCidadeLine.shp")
+
 equipamentos_publicos = DadosEquipamentosPublicos('EquipamentoPublicoDados.csv')
 
 
+calcular_rota = CalcularRotaShapefile("MapaTrechoCidade/MapaTrechoCidadeLine.shp")
 
 @app.route('/', methods=['GET', 'POST'])
 def sua_rota_de_salvar():
@@ -17,7 +18,7 @@ def sua_rota_de_salvar():
         latitude = float(request.form['latitude'])
         longitude = float(request.form['longitude'])
         resultado = []
-        escolas = equipamentos_publicos.get_schools()[100:]
+        escolas = equipamentos_publicos.get_schools()
        
         for index, escola in escolas.iterrows():
         
@@ -59,3 +60,9 @@ def api_calcular_rota(origem, destino):
         "distancia": distancia,
         "rota": rota
     })
+
+
+
+@app.route('/verificarcomponentes/', methods=['GET'])
+def mapa():
+    return render_template('mostra_grafo_mapa.html', componentes=calcular_rota.gerar_componentes_com_cores_para_leaflet())

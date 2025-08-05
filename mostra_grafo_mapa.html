@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Visualização de Componentes do Grafo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS do Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- JS do Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Inicializa o mapa em uma posição qualquer (será ajustado depois)
+        var map = L.map('map').setView([-23.55, -46.63], 13);  // São Paulo como ponto inicial
+
+        // Adiciona camada base do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Dados de componentes passados do Flask (inserido como JSON)
+        const componentes = {{ componentes|tojson }};
+
+        let allCoords = [];
+
+        // Adiciona cada componente com sua respectiva cor
+        componentes.forEach(componente => {
+            componente.coordenadas.forEach(linha => {
+                allCoords.push(linha[0]);
+                allCoords.push(linha[1]);
+                L.polyline(linha, {
+                    color: componente.cor,
+                    weight: 3,
+                    opacity: 0.8
+                }).addTo(map);
+            });
+        });
+
+        // Ajusta o zoom para mostrar todos os pontos
+        if (allCoords.length > 0) {
+            map.fitBounds(allCoords);
+        }
+    </script>
+</body>
+</html>
